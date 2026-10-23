@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minha Lavoura</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7f2;color:#263326}
+header{background:#2e7d32;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px}
+.wrap{max-width:1100px;margin:16px auto;padding:0 12px}
+.card{background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:16px}
+.card h2{margin-top:0;color:#2e7d32;font-size:19px}
+.menu{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.menu button{border:0;background:#dfe9df;padding:10px 14px;border-radius:8px;font-weight:bold;cursor:pointer}
+.menu button.on{background:#2e7d32;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.full{grid-column:1/-1}
+label{display:block;font-weight:bold;margin-bottom:5px;font-size:14px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #c9d2c9;border-radius:7px;font-size:15px;background:#fff}
+select+input{margin-top:6px}
+textarea{min-height:70px}
+.btn{border:0;padding:10px 15px;border-radius:8px;font-weight:bold;cursor:pointer;color:#fff;background:#2e7d32}
+.cz{background:#607d8b}.az{background:#1565c0}.vm{background:#c62828}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.tot{background:#e8f5e9;border-radius:10px;padding:14px}
+.tot b{display:block;font-size:24px;color:#2e7d32;margin-top:4px}
+.item{border:1px solid #d8e0d8;border-radius:10px;padding:12px;margin-bottom:10px}
+.top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:bold;color:#2e7d32}
+.item small{display:block;color:#555;margin-top:4px;font-size:13px}
+.acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.hidden{display:none!important}
+.aba{display:none}.aba.on{display:block}
+#aviso{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#263326;color:#fff;padding:10px 16px;border-radius:8px;z-index:9;max-width:90%}
+#aviso.erro{background:#c62828}
+.login{max-width:420px;margin:70px auto}
+.de{color:#c62828}.para{color:#2e7d32;font-weight:bold}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px}
+th,td{padding:8px 6px;border-bottom:1px solid #e3e9e3;text-align:left;vertical-align:top}
+th{background:#f1f6f1;color:#2e7d32}
+.n{text-align:right;white-space:nowrap}
+tr.t td{font-weight:bold;border-top:2px solid #2e7d32;border-bottom:0}
+.bar{height:5px;background:#e3e9e3;border-radius:3px;margin-top:5px}
+.bar span{display:block;height:100%;background:#2e7d32;border-radius:3px}
+#bRes{background:#e8f5e9;border-radius:8px;padding:10px;font-size:14px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="login" class="wrap login"><div class="card">
+<h2 style="text-align:center">🌱 Minha Lavoura</h2>
+<label for="email">E-mail</label><input id="email" type="email" autocomplete="username">
+<label for="senha" style="margin-top:10px">Senha</label><input id="senha" type="password" autocomplete="current-password">
+<button class="btn" style="width:100%;margin-top:14px" onclick="entrarClick()">Entrar</button>
+</div></div>
+
+<div id="app" class="hidden">
+<header><h1>🌱 Minha Lavoura</h1><div><span id="quem"></span> <button class="btn cz" onclick="sair()">Sair</button></div></header>
+<div class="wrap">
+<div class="menu">
+<button data-aba="lanc" class="on">💰 Lançamentos</button>
+<button data-aba="rel">📊 Relatório</button>
+<button data-aba="lix">🗑️ Lixeira</button>
+<button data-aba="aud">📋 Auditoria</button>
+</div>
+
+<div id="lanc" class="aba on">
+<div class="card"><div class="grid">
+<div><label for="fcultura">Filtrar por cultura</label><select id="fcultura" onchange="render()"></select></div>
+<div><label for="fsafra">Filtrar por safra</label><select id="fsafra" onchange="render()"></select></div>
+</div></div>
+<div class="cards" id="totais"></div>
+
+<div class="card"><h2 id="tit">➕ Lançar custo</h2><div class="grid">
+<div><label for="cultura">Cultura</label><select id="cultura"></select><input id="culturaO" class="hidden" placeholder="Informe a cultura"></div>
+<div><label for="lavoura">Lavoura / Talhão</label><input id="lavoura" placeholder="Ex.: Talhão 01"></div>
+<div><label for="safra">Safra</label><select id="safra"></select><input id="safraO" class="hidden" placeholder="Ex.: 2027/28"></div>
+<div><label for="categoria">Categoria</label><select id="categoria"></select></div>
+<div><label for="produto">Produto / Serviço / Atividade</label><select id="produto"></select><input id="produtoO" class="hidden" placeholder="Informe o produto ou serviço"></div>
+<div><label for="data">Data</label><input id="data" type="date"></div>
+<div><label for="quantidade">Quantidade</label><input id="quantidade" type="text" inputmode="decimal" placeholder="Ex.: 12,5"></div>
+<div><label for="unidade">Unidade</label><select id="unidade"></select><input id="unidadeO" class="hidden" placeholder="Ex.: Tambor"></div>
+<div><label for="vunit">Valor unitário (R$)</label><input id="vunit" type="text" inputmode="decimal" placeholder="Ex.: 25,90"></div>
+<div><label for="total">Valor total (R$)</label><input id="total" readonly></div>
+<div><label for="pagamento">Forma de pagamento</label><select id="pagamento"></select><input id="pagamentoO" class="hidden" placeholder="Ex.: Permuta"></div>
+<div id="bCond" class="hidden"><label for="cond">Condição</label><select id="cond"><option>À vista</option><option>Parcelado</option></select></div>
+<div id="bParc" class="hidden"><label for="parcelas">Quantidade de parcelas</label><select id="parcelas"></select></div>
+<div id="bJuros" class="hidden"><label for="jurosPct">Juros da maquininha (%)</label><input id="jurosPct" type="text" inputmode="decimal" placeholder="Ex.: 3,99 (vazio = sem juros)"></div>
+<div id="bRes" class="full hidden"></div>
+<div class="full"><label for="obs">Observação</label><textarea id="obs"></textarea></div>
+</div>
+<div class="acoes"><button class="btn" onclick="salvar()">💾 Salvar lançamento</button><button class="btn cz" onclick="limpar()">Limpar</button></div></div>
+
+<div class="card"><h2>📋 Lançamentos</h2><div id="lista"></div></div>
+</div>
+
+<div id="rel" class="aba">
+<div class="card"><div class="grid">
+<div><label for="rcultura">Cultura</label><select id="rcultura" onchange="relatorio()"></select></div>
+<div><label for="rsafra">Safra</label><select id="rsafra" onchange="relatorio()"></select></div>
+</div></div>
+<div id="relConteudo"></div></div>
+
+<div id="lix" class="aba"><div class="card"><h2>🗑️ Lixeira</h2><div id="listaLix"></div></div></div>
+<div id="aud" class="aba"><div class="card"><h2>📋 Auditoria</h2><div id="listaAud"></div></div></div>
+</div></div>
+<div id="aviso" class="hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const URL_="https://vbqbxbpdtuqwugidpesm.supabase.co";
+const CHAVE="sb_publishable_HZKHzieig7mQAeg_PHLILA_2lMtbzUO";
+const db=supabase.createClient(URL_,CHAVE);
+
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const num=v=>Number(String(v??"").replace(",","."))||0;
+const r2=n=>Math.round(num(n)*100)/100;
+const fdata=d=>d?d.split("-").reverse().join("/"):"-";
+const fhora=d=>d?new Date(d).toLocaleString("pt-BR"):"-";
+const hoje=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+let user=null,perfil=null,lanc=[],editId=null;
+
+function aviso(m,erro){const a=$("aviso");a.textContent=m;a.className=erro?"erro":"";clearTimeout(aviso.t);aviso.t=setTimeout(()=>a.className="hidden",4500)}
+
+const OPC={
+ cultura:["Mandioca","Cana-de-açúcar","Outro"],
+ safra:["2025/26","2026/27","Outro"],
+ unidade:["Kg","Saco","Litro","Unidade","Dia","Hora","Hectare","Caixa","Tonelada","Outro"],
+ pagamento:["Pix","Dinheiro","Cartão de débito","Cartão de crédito","Boleto","Transferência","Outro"]
+};
+const CAT={
+ "Preparo de área":["Aração","Nivelamento","Sulcamento","Subsolação","Gradagem","Calcário","Gesso","Adubação de base","Análise de solo","Aluguel/contratação de máquina"],
+ "Operações com trator":["Aração","Nivelamento","Sulcamento","Subsolação","Gradagem","Aplicação de herbicida","Aplicação de adubo"],
+ "Rama":["Compra de rama","Produção própria de rama","Corte da rama","Transporte da rama","Carregamento/descarregamento"],
+ "Plantio":["Mão de obra para plantio","Plantio manual","Plantio mecanizado","Replantio"],
+ "Tratamento da rama":["Fipronil (imunizante)","Enraizador","Sabão líquido","Óleo vegetal","Óleo mineral"],
+ "Herbicidas":["Atrazina","Sencor","Dual Gold","Cletodim","Diquat","Glifosato","Adjuvante","Aplicação com drone","Aplicação com trator","Aplicação costal/manual"],
+ "Inseticidas":["Inseticida para lagarta","Inseticida para cigarrinha","Inseticida para milho"],
+ "Adubação":["Adubo 04-14-08","Adubo 04-30-10","Adubo 20-00-20","Adubo 00-00-60","Ureia","Aplicação manual","Aplicação com trator","Aplicação com drone"],
+ "Combustível":["Gasolina","Combustível para máquinas/equipamentos","Combustível para veículo de transporte","Gás de cozinha"],
+ "Mão de obra":["Diária de trabalhador","Mão de obra própria","Capina/limpeza manual","Roçagem","Corte da rama","Imunização da rama","Plantio","Aplicação de adubo","Aplicação de herbicida"],
+ "Máquinas e equipamentos":["Trator","Drone","Pulverizador","Roçadeira","Tratorito","Carreta com bomba","Aluguel de máquinas/equipamentos"],
+ "Manutenção":["Troca de óleo","Filtros","Peças","Manutenção do tratorito","Manutenção da roçadeira","Manutenção do pulverizador","Manutenção da bomba"],
+ "Transporte":["Frete de insumos","Transporte de adubo","Frete contratado","Deslocamento até a fazenda"],
+ "Outros custos":["Arrendamento da terra","Compra de ferramentas","Alimentação durante o trabalho","Análise de solo"]
+};
+
+/* ---------- campos com opção "Outro" ---------- */
+function opts(id,lista,vazio){$(id).innerHTML=`<option value="">${vazio||"Selecione"}</option>`+lista.map(x=>`<option>${esc(x)}</option>`).join("")}
+function toggleOutro(id){$(id+"O").classList.toggle("hidden",$(id).value!=="Outro")}
+function combo(id){const s=$(id).value;return s==="Outro"?($(id+"O").value.trim()||"Outro"):s}
+function setCombo(id,v){const s=$(id),o=[...s.options].find(o=>o.value&&o.value!=="Outro"&&o.value.toLowerCase()===String(v||"").toLowerCase());s.value=o?o.value:(v?"Outro":"");$(id+"O").value=(o||!v)?"":v;toggleOutro(id)}
+function catMudou(){const c=$("categoria").value;opts("produto",c?[...CAT[c],"Outro"]:[],c?"Selecione":"Selecione a categoria");toggleOutro("produto")}
+function calc(){
+ const base=r2(num($("quantidade").value)*num($("vunit").value)),pg=$("pagamento").value,cc=pg==="Cartão de crédito",tem=cc||pg==="Boleto";
+ const parc=tem&&$("cond").value==="Parcelado";
+ $("bCond").classList.toggle("hidden",!tem);
+ $("bParc").classList.toggle("hidden",!parc);
+ $("bJuros").classList.toggle("hidden",!cc);
+ const pct=cc?num($("jurosPct").value):0,j=r2(base*pct/100),tot=r2(base+j),n=parc?Number($("parcelas").value)||2:1;
+ $("total").value=tot.toFixed(2);
+ const r=$("bRes");r.classList.toggle("hidden",!(j>0||parc));
+ r.innerHTML="Valor sem juros: <b>"+brl(base)+"</b>"+(j>0?" · Juros ("+pct+"%): <b>"+brl(j)+"</b>":"")+(parc?" · <b>"+n+"x de "+brl(tot/n)+"</b>":"");
+ return {j,pct,tot,n,parc,tem};
+}
+
+function iniciarForm(){
+ ["cultura","safra","unidade","pagamento"].forEach(k=>opts(k,OPC[k]));
+ opts("categoria",Object.keys(CAT));
+ ["cultura","safra","produto","unidade","pagamento"].forEach(k=>$(k).addEventListener("change",()=>toggleOutro(k)));
+ $("categoria").addEventListener("change",catMudou);
+ ["quantidade","vunit","jurosPct"].forEach(k=>$(k).addEventListener("input",calc));
+ ["pagamento","cond","parcelas"].forEach(k=>$(k).addEventListener("change",calc));
+ $("parcelas").innerHTML=[2,3,4,5,6,7,8,9,10,11,12].map(n=>"<option>"+n+"</option>").join("");
+ limpar();
+}
+function limpar(){
+ editId=null;$("tit").textContent="➕ Lançar custo";
+ ["cultura","safra","unidade","pagamento"].forEach(k=>setCombo(k,""));
+ $("categoria").value="";catMudou();setCombo("produto","");
+ ["lavoura","quantidade","vunit","total","obs","jurosPct"].forEach(k=>$(k).value="");
+ $("cond").value="À vista";$("parcelas").value="2";calc();$("total").value="";
+ $("data").value=hoje();
+}
+function editar(id){
+ const x=lanc.find(l=>l.id===id);if(!x)return;
+ editId=id;$("tit").textContent="✏️ Editar lançamento";
+ setCombo("cultura",x.cultura);setCombo("safra",x.safra);
+ $("categoria").value=x.categoria;catMudou();setCombo("produto",x.produto);
+ setCombo("unidade",x.unidade);setCombo("pagamento",x.pagamento);
+ $("lavoura").value=x.lavoura||"";$("data").value=x.data;
+ $("quantidade").value=x.quantidade;$("vunit").value=x.valor_unitario;
+ $("obs").value=(x.detalhes&&x.detalhes.observacao)||"";
+ $("cond").value=(x.detalhes&&x.detalhes.condicao)||"À vista";$("parcelas").value=x.parcelas>1?x.parcelas:2;$("jurosPct").value=(x.detalhes&&x.detalhes.juros_pct)||"";
+ calc();scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---------- auditoria ---------- */
+const CAMPOS={cultura:"Cultura",lavoura:"Lavoura",safra:"Safra",categoria:"Categoria",produto:"Produto",data:"Data",quantidade:"Quantidade",unidade:"Unidade",valor_unitario:"Valor unitário",valor_total:"Valor total",juros:"Juros",parcelas:"Parcelas",pagamento:"Pagamento"};
+const fmt=(k,v)=>v===""?"-":k==="data"?fdata(v):(k.startsWith("valor")||k==="juros")?brl(v):String(v);
+function diff(a,b){
+ const o=[];
+ for(const k in CAMPOS){const x=a[k]??"",y=b[k]??"";if(String(x)!==String(y))o.push({campo:CAMPOS[k],antigo:fmt(k,x),novo:fmt(k,y)})}
+ const oa=(a.detalhes&&a.detalhes.observacao)||"",ob=(b.detalhes&&b.detalhes.observacao)||"";
+ if(oa!==ob)o.push({campo:"Observação",antigo:oa||"-",novo:ob||"-"});
+ return o;
+}
+async function audit(acao,desc,id,alt){
+ await db.from("auditoria").insert({usuario_nome:perfil.nome,acao,descricao:desc,lancamento_id:id||null,alteracoes:alt||[]});
+}
+
+/* ---------- salvar / excluir ---------- */
+async function salvar(){
+ const reg={cultura:combo("cultura"),lavoura:$("lavoura").value.trim(),safra:combo("safra"),categoria:$("categoria").value,produto:combo("produto"),data:$("data").value,quantidade:r2($("quantidade").value),unidade:combo("unidade"),valor_unitario:r2($("vunit").value),pagamento:combo("pagamento"),detalhes:{observacao:$("obs").value.trim()}};
+ const c=calc();reg.valor_total=c.tot;reg.juros=c.j;reg.parcelas=c.n;
+ reg.detalhes.juros_pct=c.pct;reg.detalhes.valor_parcela=r2(c.tot/c.n);
+ if(c.tem)reg.detalhes.condicao=c.parc?"Parcelado":"À vista";
+ const e=[[!reg.cultura,"Selecione a cultura."],[!reg.categoria,"Selecione a categoria."],[!reg.produto,"Selecione o produto/serviço."],[!reg.data,"Informe a data."],[!(reg.quantidade>0),"Informe uma quantidade válida."],[reg.valor_unitario<0,"Informe um valor unitário válido."]].find(x=>x[0]);
+ if(e)return aviso(e[1],1);
+ if(!(reg.valor_unitario>0)&&!confirm("O valor unitário está zerado. Salvar mesmo assim?"))return;
+ if(!editId){
+  const d=lanc.find(x=>!x.excluido_em&&["cultura","lavoura","safra","categoria","produto","unidade"].every(k=>(x[k]||"")===(reg[k]||""))&&Number(x.quantidade)===reg.quantidade);
+  if(d&&!confirm("Já existe um lançamento parecido ("+fdata(d.data)+"). Lançar novamente?"))return;
+ }
+ let erro;
+ if(editId){
+  const ant=lanc.find(x=>x.id===editId);
+  const r=await db.from("lancamentos").update(reg).eq("id",editId).select("id");
+  erro=r.error||(!r.data.length&&{message:"você não tem permissão para editar este lançamento."});
+  if(!erro)await audit("ALTERAÇÃO","Lançamento alterado: "+reg.produto,editId,diff(ant,reg));
+ }else{
+  const r=await db.from("lancamentos").insert({...reg,criado_por_nome:perfil.nome}).select("id").single();
+  erro=r.error;
+  if(!erro)await audit("INCLUSÃO","Lançamento incluído: "+reg.produto,r.data.id);
+ }
+ if(erro)return aviso("Erro ao salvar: "+erro.message,1);
+ aviso("Lançamento salvo.");limpar();carregar();
+}
+async function mover(id,acao){
+ const x=lanc.find(l=>l.id===id);if(!x)return;
+ let q,rot,nome;
+ if(acao==="excluir"){
+  if(!confirm("Enviar este lançamento para a lixeira?"))return;
+  q=db.from("lancamentos").update({excluido_em:new Date().toISOString(),excluido_por_nome:perfil.nome}).eq("id",id);rot="EXCLUSÃO";nome="Enviado para a lixeira: ";
+ }else if(acao==="restaurar"){
+  q=db.from("lancamentos").update({excluido_em:null,excluido_por_nome:null}).eq("id",id);rot="RESTAURAÇÃO";nome="Restaurado: ";
+ }else{
+  if(!confirm("Excluir definitivamente? Isso não pode ser desfeito."))return;
+  q=db.from("lancamentos").delete().eq("id",id);rot="EXCLUSÃO DEFINITIVA";nome="Excluído definitivamente: ";
+ }
+ const r=await q.select("id");
+ if(r.error||!r.data.length)return aviso("Não foi possível concluir: "+(r.error?r.error.message:"sem permissão."),1);
+ await audit(rot,nome+x.produto,id);carregar();
+}
+
+/* ---------- listagem ---------- */
+async function carregar(){
+ const r=await db.from("lancamentos").select("*").order("data",{ascending:false}).order("id",{ascending:false});
+ if(r.error)return aviso("Erro ao carregar: "+r.error.message,1);
+ lanc=r.data;render();
+}
+function filtros(a){
+ [["fcultura","cultura","Todas as culturas"],["fsafra","safra","Todas as safras"],["rcultura","cultura","Todas as culturas"],["rsafra","safra","Todas as safras"]].forEach(([id,k,rot])=>{
+  const v=$(id).value,l=[...new Set(a.map(x=>x[k]).filter(Boolean))].sort();
+  $(id).innerHTML=`<option value="">${rot}</option>`+l.map(x=>`<option>${esc(x)}</option>`).join("");
+  $(id).value=l.includes(v)?v:"";
+ });
+}
+function render(){
+ const ativos=lanc.filter(x=>!x.excluido_em);
+ filtros(ativos);
+ const fc=$("fcultura").value,fs=$("fsafra").value;
+ const lista=ativos.filter(x=>(!fc||x.cultura===fc)&&(!fs||x.safra===fs));
+ const t={};lista.forEach(x=>t[x.cultura]=r2((t[x.cultura]||0)+Number(x.valor_total)));
+ $("totais").innerHTML=Object.keys(t).length?Object.entries(t).map(([c,v])=>`<div class="tot">Total · ${esc(c)}${fs?" · safra "+esc(fs):""}<b>${brl(v)}</b></div>`).join(""):"<p>Nenhum lançamento ainda.</p>";
+ $("lista").innerHTML=lista.length?lista.map(x=>item(x)).join(""):"<p>Nenhum lançamento encontrado.</p>";
+ const lix=lanc.filter(x=>x.excluido_em);
+ $("listaLix").innerHTML=lix.length?lix.map(x=>item(x,true)).join(""):"<p>A lixeira está vazia.</p>";
+ relatorio();
+}
+function item(x,lix){
+ const pode=x.criado_por===user.id||perfil.admin,d=x.detalhes||{};
+ let bt="";
+ if(lix)bt=perfil.admin?`<button class="btn" onclick="mover(${x.id},'restaurar')">♻️ Restaurar</button><button class="btn vm" onclick="mover(${x.id},'definitivo')">Excluir definitivamente</button>`:"<small>Só o administrador pode restaurar.</small>";
+ else if(pode)bt=`<button class="btn az" onclick="editar(${x.id})">✏️ Editar</button><button class="btn vm" onclick="mover(${x.id},'excluir')">🗑️ Excluir</button>`;
+ return `<div class="item"><div class="top"><span>${esc(x.produto)}</span><span>${brl(x.valor_total)}</span></div>
+<small>${fdata(x.data)} · ${esc(x.cultura)} · ${esc(x.categoria)} · safra ${esc(x.safra||"-")} · ${esc(x.lavoura||"-")}</small>
+<small>${x.quantidade} ${esc(x.unidade||"")} × ${brl(x.valor_unitario)} · ${esc(x.pagamento||"-")}${x.parcelas>1?" ("+x.parcelas+"x de "+brl(d.valor_parcela||x.valor_total/x.parcelas)+")":""}${Number(x.juros)>0?" · juros "+brl(x.juros):""} · lançado por ${esc(x.criado_por_nome)}${lix?" · excluído por "+esc(x.excluido_por_nome||"-")+" em "+fhora(x.excluido_em):""}</small>
+${d.observacao?`<small>Obs.: ${esc(d.observacao)}</small>`:""}<div class="acoes">${bt}</div></div>`;
+}
+function tabela(tit,dados,tot,ord,rot){
+ dados.sort(ord==="k"?(a,b)=>a[0].localeCompare(b[0]):(a,b)=>b[1]-a[1]);
+ const linhas=dados.map(([k,v])=>{const p=tot>0?v/tot*100:0;return `<tr><td>${esc(rot?rot(k):k)}<div class="bar"><span style="width:${p.toFixed(1)}%"></span></div></td><td class="n">${brl(v)}</td><td class="n">${p.toFixed(1).replace(".",",")}%</td></tr>`}).join("");
+ return `<table><tr><th>${tit}</th><th class="n">Valor</th><th class="n">%</th></tr>${linhas}<tr class="t"><td>Total</td><td class="n">${brl(tot)}</td><td class="n">100%</td></tr></table>`;
+}
+function relatorio(){
+ const fc=$("rcultura").value,fs=$("rsafra").value;
+ const l=lanc.filter(x=>!x.excluido_em&&(!fc||x.cultura===fc)&&(!fs||x.safra===fs));
+ if(!l.length){$("relConteudo").innerHTML='<div class="card">Nenhum lançamento para os filtros escolhidos.</div>';return}
+ const soma=(arr,f)=>{const m={};arr.forEach(x=>{const k=f(x)||"Não informado";m[k]=r2((m[k]||0)+Number(x.valor_total))});return Object.entries(m)};
+ const mes=k=>k.split("-").reverse().join("/");
+ $("relConteudo").innerHTML=[...new Set(l.map(x=>x.cultura))].sort().map(c=>{
+  const a=l.filter(x=>x.cultura===c),tot=r2(a.reduce((t,x)=>t+Number(x.valor_total),0));
+  return `<div class="card"><h2>🌱 ${esc(c)} — ${brl(tot)}</h2><small>${a.length} lançamento(s)${fs?" · safra "+esc(fs):""}</small>
+${fs?"":tabela("Por safra",soma(a,x=>x.safra),tot,"k")}${tabela("Por categoria",soma(a,x=>x.categoria),tot,"v")}${tabela("Por lavoura / talhão",soma(a,x=>x.lavoura),tot,"v")}${tabela("Por mês",soma(a,x=>x.data.slice(0,7)),tot,"k",mes)}${tabela("Por forma de pagamento",soma(a,x=>x.pagamento),tot,"v")}</div>`;
+ }).join("");
+}
+async function carregarAud(){
+ const r=await db.from("auditoria").select("*").order("criado_em",{ascending:false}).limit(200);
+ if(r.error){$("listaAud").innerHTML="<p>Erro ao carregar: "+esc(r.error.message)+"</p>";return}
+ $("listaAud").innerHTML=r.data.length?r.data.map(a=>`<div class="item"><div class="top"><span>${esc(a.acao)}</span><span>${fhora(a.criado_em)}</span></div><small>${esc(a.usuario_nome)} — ${esc(a.descricao)}</small>${(a.alteracoes||[]).map(c=>`<small>${esc(c.campo)}: <span class="de">${esc(c.antigo)}</span> → <span class="para">${esc(c.novo)}</span></small>`).join("")}</div>`).join(""):"<p>Nenhum registro de auditoria.</p>";
+}
+
+/* ---------- abas e login ---------- */
+document.querySelectorAll(".menu button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".menu button,.aba").forEach(e=>e.classList.remove("on"));
+ b.classList.add("on");$(b.dataset.aba).classList.add("on");
+ if(b.dataset.aba==="aud")carregarAud();else carregar();
+});
+async function entrarClick(){
+ const r=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("senha").value});
+ if(r.error)return aviso("E-mail ou senha incorretos.",1);
+ iniciar();
+}
+async function iniciar(){
+ const s=(await db.auth.getSession()).data.session;if(!s)return;
+ user=s.user;
+ const r=await db.from("perfis").select("nome,admin").eq("id",user.id).single();
+ if(r.error||!r.data){aviso("Perfil não encontrado. Fale com o administrador.",1);await db.auth.signOut();return}
+ perfil=r.data;
+ $("quem").textContent=perfil.nome+(perfil.admin?" 👑 Administrador":"");
+ $("login").classList.add("hidden");$("app").classList.remove("hidden");
+ iniciarForm();carregar();
+}
+async function sair(){await db.auth.signOut();location.reload()}
+$("senha").addEventListener("keydown",e=>{if(e.key==="Enter")entrarClick()});
+iniciar();
+</script>
+</body>
+</html>
