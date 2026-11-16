@@ -85,6 +85,7 @@ tr.t td{font-weight:bold;border-top:2px solid #2e7d32;border-bottom:0}
 <div><label for="vunit">Valor unitário (R$)</label><input id="vunit" type="text" inputmode="decimal" placeholder="Ex.: 25,90"></div>
 <div><label for="total">Valor total (R$)</label><input id="total" readonly></div>
 <div><label for="pagamento">Forma de pagamento</label><select id="pagamento"></select><input id="pagamentoO" class="hidden" placeholder="Ex.: Permuta"></div>
+<div><label for="pagou">Quem pagou</label><select id="pagou"></select><input id="pagouO" class="hidden" placeholder="Nome de quem pagou"></div>
 <div id="bCond" class="hidden"><label for="cond">Condição</label><select id="cond"><option>À vista</option><option>Parcelado</option></select></div>
 <div id="bParc" class="hidden"><label for="parcelas">Quantidade de parcelas</label><select id="parcelas"></select></div>
 <div id="bJuros" class="hidden"><label for="jurosPct">Juros da maquininha (%)</label><input id="jurosPct" type="text" inputmode="decimal" placeholder="Ex.: 3,99 (vazio = sem juros)"></div>
@@ -122,7 +123,7 @@ const r2=n=>Math.round(num(n)*100)/100;
 const fdata=d=>d?d.split("-").reverse().join("/"):"-";
 const fhora=d=>d?new Date(d).toLocaleString("pt-BR"):"-";
 const hoje=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
-let user=null,perfil=null,lanc=[],editId=null;
+let user=null,perfil=null,lanc=[],editId=null,ultimoPagador="";
 
 function aviso(m,erro){const a=$("aviso");a.textContent=m;a.className=erro?"erro":"";clearTimeout(aviso.t);aviso.t=setTimeout(()=>a.className="hidden",4500)}
 
@@ -130,7 +131,8 @@ const OPC={
  cultura:["Mandioca","Cana-de-açúcar","Outro"],
  safra:["2025/26","2026/27","Outro"],
  unidade:["Kg","Saco","Litro","Unidade","Dia","Hora","Hectare","Caixa","Tonelada","Outro"],
- pagamento:["Pix","Dinheiro","Cartão de débito","Cartão de crédito","Boleto","Transferência","Outro"]
+ pagamento:["Pix","Dinheiro","Cartão de débito","Cartão de crédito","Boleto","Transferência","Outro"],
+ pagou:["Igor","Ronney","Outro"]
 };
 const CAT={
  "Preparo de área":["Aração","Nivelamento","Sulcamento","Subsolação","Gradagem","Calcário","Gesso","Adubação de base","Análise de solo","Aluguel/contratação de máquina"],
@@ -169,9 +171,9 @@ function calc(){
 }
 
 function iniciarForm(){
- ["cultura","safra","unidade","pagamento"].forEach(k=>opts(k,OPC[k]));
+ ["cultura","safra","unidade","pagamento","pagou"].forEach(k=>opts(k,OPC[k]));
  opts("categoria",Object.keys(CAT));
- ["cultura","safra","produto","unidade","pagamento"].forEach(k=>$(k).addEventListener("change",()=>toggleOutro(k)));
+ ["cultura","safra","produto","unidade","pagamento","pagou"].forEach(k=>$(k).addEventListener("change",()=>toggleOutro(k)));
  $("categoria").addEventListener("change",catMudou);
  ["quantidade","vunit","jurosPct"].forEach(k=>$(k).addEventListener("input",calc));
  ["pagamento","cond","parcelas"].forEach(k=>$(k).addEventListener("change",calc));
@@ -180,7 +182,7 @@ function iniciarForm(){
 }
 function limpar(){
  editId=null;$("tit").textContent="➕ Lançar custo";
- ["cultura","safra","unidade","pagamento"].forEach(k=>setCombo(k,""));
+ ["cultura","safra","unidade","pagamento"].forEach(k=>setCombo(k,""));setCombo("pagou",ultimoPagador);
  $("categoria").value="";catMudou();setCombo("produto","");
  ["lavoura","quantidade","vunit","total","obs","jurosPct"].forEach(k=>$(k).value="");
  $("cond").value="À vista";$("parcelas").value="2";calc();$("total").value="";
@@ -191,7 +193,7 @@ function editar(id){
  editId=id;$("tit").textContent="✏️ Editar lançamento";
  setCombo("cultura",x.cultura);setCombo("safra",x.safra);
  $("categoria").value=x.categoria;catMudou();setCombo("produto",x.produto);
- setCombo("unidade",x.unidade);setCombo("pagamento",x.pagamento);
+ setCombo("unidade",x.unidade);setCombo("pagamento",x.pagamento);setCombo("pagou",(x.detalhes&&x.detalhes.pago_por)||"");
  $("lavoura").value=x.lavoura||"";$("data").value=x.data;
  $("quantidade").value=x.quantidade;$("vunit").value=x.valor_unitario;
  $("obs").value=(x.detalhes&&x.detalhes.observacao)||"";
@@ -207,6 +209,8 @@ function diff(a,b){
  for(const k in CAMPOS){const x=a[k]??"",y=b[k]??"";if(String(x)!==String(y))o.push({campo:CAMPOS[k],antigo:fmt(k,x),novo:fmt(k,y)})}
  const oa=(a.detalhes&&a.detalhes.observacao)||"",ob=(b.detalhes&&b.detalhes.observacao)||"";
  if(oa!==ob)o.push({campo:"Observação",antigo:oa||"-",novo:ob||"-"});
+ const pa=(a.detalhes&&a.detalhes.pago_por)||"",pb=(b.detalhes&&b.detalhes.pago_por)||"";
+ if(pa!==pb)o.push({campo:"Quem pagou",antigo:pa||"-",novo:pb||"-"});
  return o;
 }
 async function audit(acao,desc,id,alt){
@@ -215,11 +219,11 @@ async function audit(acao,desc,id,alt){
 
 /* ---------- salvar / excluir ---------- */
 async function salvar(){
- const reg={cultura:combo("cultura"),lavoura:$("lavoura").value.trim(),safra:combo("safra"),categoria:$("categoria").value,produto:combo("produto"),data:$("data").value,quantidade:r2($("quantidade").value),unidade:combo("unidade"),valor_unitario:r2($("vunit").value),pagamento:combo("pagamento"),detalhes:{observacao:$("obs").value.trim()}};
+ const reg={cultura:combo("cultura"),lavoura:$("lavoura").value.trim(),safra:combo("safra"),categoria:$("categoria").value,produto:combo("produto"),data:$("data").value,quantidade:r2($("quantidade").value),unidade:combo("unidade"),valor_unitario:r2($("vunit").value),pagamento:combo("pagamento"),detalhes:{observacao:$("obs").value.trim(),pago_por:combo("pagou")}};
  const c=calc();reg.valor_total=c.tot;reg.juros=c.j;reg.parcelas=c.n;
  reg.detalhes.juros_pct=c.pct;reg.detalhes.valor_parcela=r2(c.tot/c.n);
  if(c.tem)reg.detalhes.condicao=c.parc?"Parcelado":"À vista";
- const e=[[!reg.cultura,"Selecione a cultura."],[!reg.categoria,"Selecione a categoria."],[!reg.produto,"Selecione o produto/serviço."],[!reg.data,"Informe a data."],[!(reg.quantidade>0),"Informe uma quantidade válida."],[reg.valor_unitario<0,"Informe um valor unitário válido."]].find(x=>x[0]);
+ const e=[[!reg.cultura,"Selecione a cultura."],[!reg.categoria,"Selecione a categoria."],[!reg.produto,"Selecione o produto/serviço."],[!reg.data,"Informe a data."],[!(reg.quantidade>0),"Informe uma quantidade válida."],[!reg.detalhes.pago_por,"Selecione quem pagou."],[reg.valor_unitario<0,"Informe um valor unitário válido."]].find(x=>x[0]);
  if(e)return aviso(e[1],1);
  if(!(reg.valor_unitario>0)&&!confirm("O valor unitário está zerado. Salvar mesmo assim?"))return;
  if(!editId){
@@ -238,7 +242,7 @@ async function salvar(){
   if(!erro)await audit("INCLUSÃO","Lançamento incluído: "+reg.produto,r.data.id);
  }
  if(erro)return aviso("Erro ao salvar: "+erro.message,1);
- aviso("Lançamento salvo.");limpar();carregar();
+ ultimoPagador=reg.detalhes.pago_por;aviso("Lançamento salvo.");limpar();carregar();
 }
 async function mover(id,acao){
  const x=lanc.find(l=>l.id===id);if(!x)return;
@@ -289,7 +293,7 @@ function item(x,lix){
  else if(pode)bt=`<button class="btn az" onclick="editar(${x.id})">✏️ Editar</button><button class="btn vm" onclick="mover(${x.id},'excluir')">🗑️ Excluir</button>`;
  return `<div class="item"><div class="top"><span>${esc(x.produto)}</span><span>${brl(x.valor_total)}</span></div>
 <small>${fdata(x.data)} · ${esc(x.cultura)} · ${esc(x.categoria)} · safra ${esc(x.safra||"-")} · ${esc(x.lavoura||"-")}</small>
-<small>${x.quantidade} ${esc(x.unidade||"")} × ${brl(x.valor_unitario)} · ${esc(x.pagamento||"-")}${x.parcelas>1?" ("+x.parcelas+"x de "+brl(d.valor_parcela||x.valor_total/x.parcelas)+")":""}${Number(x.juros)>0?" · juros "+brl(x.juros):""} · lançado por ${esc(x.criado_por_nome)}${lix?" · excluído por "+esc(x.excluido_por_nome||"-")+" em "+fhora(x.excluido_em):""}</small>
+<small>${x.quantidade} ${esc(x.unidade||"")} × ${brl(x.valor_unitario)} · ${esc(x.pagamento||"-")}${x.parcelas>1?" ("+x.parcelas+"x de "+brl(d.valor_parcela||x.valor_total/x.parcelas)+")":""}${Number(x.juros)>0?" · juros "+brl(x.juros):""} · pago por ${esc(d.pago_por||"não informado")} · lançado por ${esc(x.criado_por_nome)}${lix?" · excluído por "+esc(x.excluido_por_nome||"-")+" em "+fhora(x.excluido_em):""}</small>
 ${d.observacao?`<small>Obs.: ${esc(d.observacao)}</small>`:""}<div class="acoes">${bt}</div></div>`;
 }
 function tabela(tit,dados,tot,ord,rot){
@@ -306,7 +310,7 @@ function relatorio(){
  $("relConteudo").innerHTML=[...new Set(l.map(x=>x.cultura))].sort().map(c=>{
   const a=l.filter(x=>x.cultura===c),tot=r2(a.reduce((t,x)=>t+Number(x.valor_total),0));
   return `<div class="card"><h2>🌱 ${esc(c)} — ${brl(tot)}</h2><small>${a.length} lançamento(s)${fs?" · safra "+esc(fs):""}</small>
-${fs?"":tabela("Por safra",soma(a,x=>x.safra),tot,"k")}${tabela("Por categoria",soma(a,x=>x.categoria),tot,"v")}${tabela("Por lavoura / talhão",soma(a,x=>x.lavoura),tot,"v")}${tabela("Por mês",soma(a,x=>x.data.slice(0,7)),tot,"k",mes)}${tabela("Por forma de pagamento",soma(a,x=>x.pagamento),tot,"v")}</div>`;
+${tabela("Quem pagou",soma(a,x=>x.detalhes&&x.detalhes.pago_por),tot,"v")}${fs?"":tabela("Por safra",soma(a,x=>x.safra),tot,"k")}${tabela("Por categoria",soma(a,x=>x.categoria),tot,"v")}${tabela("Por lavoura / talhão",soma(a,x=>x.lavoura),tot,"v")}${tabela("Por mês",soma(a,x=>x.data.slice(0,7)),tot,"k",mes)}${tabela("Por forma de pagamento",soma(a,x=>x.pagamento),tot,"v")}</div>`;
  }).join("");
 }
 async function carregarAud(){
